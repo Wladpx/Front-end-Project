@@ -2,6 +2,8 @@ import { useCallback, useMemo, useState } from 'react'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import RegisterPatient from './components/RegisterPatient'
+import Appointments from './components/AppointList'
+import AppointmentDetail from './components/AppointmentDetail'
 import './App.css'
 
 const INITIAL_PATIENTS = [
@@ -26,12 +28,14 @@ const INITIAL_PATIENTS = [
 const generateId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
-    : `paciente-${Date.now()}`
+    : `registro-${Date.now()}`
 
 function App() {
   const [view, setView] = useState('login')
   const [currentUser, setCurrentUser] = useState(null)
   const [patients, setPatients] = useState(INITIAL_PATIENTS)
+  const [appointments, setAppointments] = useState([])
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null)
 
   const handleLogin = useCallback((user) => {
     setCurrentUser(user)
@@ -51,6 +55,36 @@ function App() {
     setPatients((prev) => [...prev, { ...patientData, id: generateId() }])
   }, [])
 
+  const handleRegisterAppointment = useCallback((appointmentData) => {
+    setAppointments((prev) => [
+      ...prev,
+      {
+        ...appointmentData,
+        id: generateId(),
+        status: 'Agendada',
+      },
+    ])
+  }, [])
+
+  const handleSelectAppointment = useCallback((appointment) => {
+    setSelectedAppointmentId(appointment.id)
+    setView('appointmentDetail')
+  }, [])
+
+  const handleUpdateAppointment = useCallback((updatedAppointment) => {
+    setAppointments((prev) => prev.map((appt) => (appt.id === updatedAppointment.id ? { ...appt, ...updatedAppointment } : appt)))
+  }, [])
+
+  const handleDeleteAppointment = useCallback((appointmentId) => {
+    setAppointments((prev) => prev.filter((appt) => appt.id !== appointmentId))
+    setSelectedAppointmentId(null)
+  }, [])
+
+  const selectedAppointment = useMemo(
+    () => appointments.find((appt) => appt.id === selectedAppointmentId) || null,
+    [appointments, selectedAppointmentId]
+  )
+
   const content = useMemo(() => {
     if (view === 'login') {
       return <Login onSuccess={handleLogin} />
@@ -66,8 +100,58 @@ function App() {
       )
     }
 
+    if (view === 'appointmentsCreate') {
+      return (
+        <Appointments
+          mode="create"
+          onBack={() => handleNavigate('dashboard')}
+          onSubmit={handleRegisterAppointment}
+          patients={patients}
+          appointments={appointments}
+        />
+      )
+    }
+
+    if (view === 'appointmentsList') {
+      return (
+        <Appointments
+          mode="list"
+          onBack={() => handleNavigate('dashboard')}
+          onSubmit={handleRegisterAppointment}
+          patients={patients}
+          appointments={appointments}
+          onSelect={handleSelectAppointment}
+        />
+      )
+    }
+
+    if (view === 'appointmentDetail' && selectedAppointment) {
+      return (
+        <AppointmentDetail
+          appointment={selectedAppointment}
+          onBack={() => handleNavigate('appointmentsList')}
+          onUpdate={handleUpdateAppointment}
+          onDelete={(id) => {
+            handleDeleteAppointment(id)
+            handleNavigate('appointmentsList')
+          }}
+        />
+      )
+    }
+
     return <Dashboard user={currentUser} onNavigate={handleNavigate} />
-  }, [currentUser, handleLogin, handleNavigate, handleRegisterPatient, patients, view])
+  }, [
+    appointments,
+    currentUser,
+    handleLogin,
+    handleNavigate,
+    handleRegisterAppointment,
+    handleSelectAppointment,
+    handleRegisterPatient,
+    patients,
+    selectedAppointment,
+    view,
+  ])
 
   return <main className="layout">{content}</main>
 }
