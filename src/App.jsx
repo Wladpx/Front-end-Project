@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard'
 import RegisterPatient from './components/RegisterPatient'
 import Appointments from './components/AppointList'
 import AppointmentDetail from './components/AppointmentDetail'
+import PatientList from './components/PatientList'
 import './App.css'
 
 const INITIAL_PATIENTS = [
