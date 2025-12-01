@@ -37,3 +37,8 @@ O conteúdo em `dist/` pode ser publicado em serviços como Netlify, GitHub Page
 ```bash
 npm run preview
 ```
+## Autores
+
+Wlademir Pontes Xavier - 01700113
+Celso Vinicius Souza Silva - 01704603
+João Gabriel da Silva Nemezio - 01705453
