@@ -5,7 +5,9 @@ import RegisterPatient from './components/RegisterPatient'
 import Appointments from './components/AppointList'
 import AppointmentDetail from './components/AppointmentDetail'
 import PatientList from './components/PatientList'
+import EditPatient from './components/EditPatient'
 import './App.css'
+import { calculateAgeFromBirthDate, sanitizeDocument, sanitizePhone } from './utils/patientUtils'
 
 const INITIAL_PATIENTS = [
   {
@@ -24,7 +26,12 @@ const INITIAL_PATIENTS = [
     phone: '(81) 97777-2222',
     notes: 'Prefere consultas no período da tarde.',
   },
-]
+].map((patient) => ({
+  ...patient,
+  document: sanitizeDocument(patient.document),
+  phone: sanitizePhone(patient.phone),
+  age: calculateAgeFromBirthDate(patient.birthDate),
+}))
 
 const generateId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
@@ -53,7 +60,32 @@ function App() {
   }, [])
 
   const handleRegisterPatient = useCallback((patientData) => {
-    setPatients((prev) => [...prev, { ...patientData, id: generateId() }])
+    setPatients((prev) => [
+      ...prev,
+      {
+        ...patientData,
+        document: sanitizeDocument(patientData.document),
+        phone: sanitizePhone(patientData.phone),
+        age: calculateAgeFromBirthDate(patientData.birthDate),
+        id: generateId(),
+      },
+    ])
+  }, [])
+
+  const handleUpdatePatient = useCallback((updatedPatient) => {
+    setPatients((prev) =>
+      prev.map((patient) =>
+        patient.id === updatedPatient.id
+          ? {
+              ...patient,
+              ...updatedPatient,
+              document: sanitizeDocument(updatedPatient.document),
+              phone: sanitizePhone(updatedPatient.phone),
+              age: calculateAgeFromBirthDate(updatedPatient.birthDate),
+            }
+          : patient
+      )
+    )
   }, [])
 
   const handleRegisterAppointment = useCallback((appointmentData) => {
@@ -126,6 +158,20 @@ function App() {
       )
     }
 
+    if (view === 'patientList') {
+      return <PatientList onBack={() => handleNavigate('dashboard')} patients={patients} />
+    }
+
+    if (view === 'editPatient') {
+      return (
+        <EditPatient
+          onBack={() => handleNavigate('dashboard')}
+          onSubmit={handleUpdatePatient}
+          patients={patients}
+        />
+      )
+    }
+
     if (view === 'appointmentDetail' && selectedAppointment) {
       return (
         <AppointmentDetail
@@ -147,8 +193,11 @@ function App() {
     handleLogin,
     handleNavigate,
     handleRegisterAppointment,
+    handleDeleteAppointment,
     handleSelectAppointment,
+    handleUpdateAppointment,
     handleRegisterPatient,
+    handleUpdatePatient,
     patients,
     selectedAppointment,
     view,

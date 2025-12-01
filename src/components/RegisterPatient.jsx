@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sanitizeDocument, sanitizePhone } from '../utils/patientUtils'
 
 const emptyPatient = {
   fullName: '',
@@ -13,7 +14,17 @@ export default function RegisterPatient({ onBack, onSubmit, patients }) {
   const [feedback, setFeedback] = useState('')
 
   const handleChange = (event) => {
-    const { name, value } = event.target
+    const { name } = event.target
+    let { value } = event.target
+
+    if (name === 'document') {
+      value = sanitizeDocument(value)
+    }
+
+    if (name === 'phone') {
+      value = sanitizePhone(value)
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -55,10 +66,15 @@ export default function RegisterPatient({ onBack, onSubmit, patients }) {
             <span>Documento</span>
             <input
               name="document"
-              placeholder="000.000.000-00"
+              placeholder="Somente números"
               value={formData.document}
               onChange={handleChange}
               required
+              inputMode="numeric"
+              minLength={11}
+              maxLength={11}
+              pattern="[0-9]{11}"
+              title="Digite exatamente 11 números"
             />
           </label>
 
@@ -69,7 +85,18 @@ export default function RegisterPatient({ onBack, onSubmit, patients }) {
 
           <label className="form__group">
             <span>Telefone</span>
-            <input name="phone" placeholder="(81) 99999-0000" value={formData.phone} onChange={handleChange} required />
+            <input
+              name="phone"
+              placeholder="Somente números"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              inputMode="numeric"
+              minLength={11}
+              maxLength={11}
+              pattern="[0-9]{11}"
+              title="Digite exatamente 11 números (DDD + número)"
+            />
           </label>
 
           <label className="form__group form__group--full">

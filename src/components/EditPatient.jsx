@@ -1,23 +1,84 @@
-import { useState, useEffect } from "react"
+import { useMemo, useState } from 'react'
+import { sanitizeDocument, sanitizePhone } from '../utils/patientUtils'
 
-export default function EditPatient({ onBack, onSubmit, patient }) {
-  const [formData, setFormData] = useState(patient)
-  const [feedback, setFeedback] = useState("")
+const emptyForm = {
+  id: '',
+  fullName: '',
+  document: '',
+  birthDate: '',
+  phone: '',
+  notes: '',
+}
 
-  useEffect(() => {
-    setFormData(patient)
-  }, [patient])
+const buildFormData = (patient) =>
+  patient
+    ? {
+        ...patient,
+        document: sanitizeDocument(patient.document),
+        phone: sanitizePhone(patient.phone),
+        notes: patient.notes || '',
+      }
+    : emptyForm
+
+export default function EditPatient({ onBack, onSubmit, patients }) {
+  const [selectedPatientId, setSelectedPatientId] = useState(() => patients[0]?.id ?? '')
+  const [drafts, setDrafts] = useState({})
+  const [feedback, setFeedback] = useState('')
+
+  const effectiveSelectedPatientId = useMemo(() => {
+    if (!patients.length) return ''
+    return patients.some((patient) => patient.id === selectedPatientId) ? selectedPatientId : patients[0].id
+  }, [patients, selectedPatientId])
+
+  const selectedPatient = useMemo(
+    () => patients.find((patient) => patient.id === effectiveSelectedPatientId) ?? null,
+    [patients, effectiveSelectedPatientId]
+  )
+
+  const hasPatients = Boolean(selectedPatient)
+
+  const selectionOptions = useMemo(
+    () =>
+      patients.map((patient) => ({
+        id: patient.id,
+        label: patient.fullName || patient.id,
+      })),
+    [patients]
+  )
+
+  const currentDraft = useMemo(() => {
+    if (!selectedPatient) return emptyForm
+    return drafts[effectiveSelectedPatientId] ?? buildFormData(selectedPatient)
+  }, [drafts, selectedPatient, effectiveSelectedPatientId])
 
   const handleChange = (event) => {
-    const { name, value } = event.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (!hasPatients) return
+    const { name } = event.target
+    let { value } = event.target
+
+    if (name === 'document') {
+      value = sanitizeDocument(value)
+    }
+
+    if (name === 'phone') {
+      value = sanitizePhone(value)
+    }
+
+    setDrafts((prev) => {
+      const nextDraft = { ...(prev[effectiveSelectedPatientId] ?? currentDraft), [name]: value }
+      return {
+        ...prev,
+        [effectiveSelectedPatientId]: nextDraft,
+      }
+    })
   }
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    onSubmit(formData)
-    setFeedback("Dados do paciente atualizados (mock).")
-    setTimeout(() => setFeedback(""), 4000)
+    if (!hasPatients) return
+    onSubmit(currentDraft)
+    setFeedback('Dados do paciente atualizados (mock).')
+    setTimeout(() => setFeedback(''), 4000)
   }
 
   return (
@@ -35,70 +96,86 @@ export default function EditPatient({ onBack, onSubmit, patient }) {
         </button>
       </header>
 
-      <div className="card">
-        <form className="form form--grid" onSubmit={handleSubmit}>
-          <label className="form__group form__group--full">
-            <span>Nome completo</span>
-            <input
-              name="fullName"
-              placeholder="Paciente Demo"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-            />
-          </label>
+      {!hasPatients ? (
+        <div className="card card--centered">
+          <h3>Nenhum paciente disponível</h3>
+          <p>Cadastre um paciente primeiro para liberar a tela de edição.</p>
+        </div>
+      ) : (
+        <div className="card">
+          <form className="form form--grid" onSubmit={handleSubmit}>
+            <label className="form__group form__group--full">
+              <span>Selecione o paciente</span>
+              <select value={effectiveSelectedPatientId} onChange={(event) => setSelectedPatientId(event.target.value)}>
+                {selectionOptions.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="form__group">
-            <span>Documento</span>
-            <input
-              name="document"
-              placeholder="000.000.000-00"
-              value={formData.document}
-              onChange={handleChange}
-              required
-            />
-          </label>
+            <label className="form__group form__group--full">
+              <span>Nome completo</span>
+              <input name="fullName" placeholder="Paciente Demo" value={currentDraft.fullName} onChange={handleChange} required />
+            </label>
 
-          <label className="form__group">
-            <span>Data de nascimento</span>
-            <input
-              type="date"
-              name="birthDate"
-              value={formData.birthDate}
-              onChange={handleChange}
-              required
-            />
-          </label>
+            <label className="form__group">
+              <span>Documento</span>
+              <input
+                name="document"
+                placeholder="Somente números"
+                value={currentDraft.document}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+                minLength={11}
+                maxLength={11}
+                pattern="[0-9]{11}"
+                title="Digite exatamente 11 números"
+              />
+            </label>
 
-          <label className="form__group">
-            <span>Telefone</span>
-            <input
-              name="phone"
-              placeholder="(81) 99999-0000"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </label>
+            <label className="form__group">
+              <span>Data de nascimento</span>
+              <input type="date" name="birthDate" value={currentDraft.birthDate} onChange={handleChange} required />
+            </label>
 
-          <label className="form__group form__group--full">
-            <span>Observações</span>
-            <textarea
-              name="notes"
-              rows={3}
-              placeholder="Alergias, preferências e outras anotações."
-              value={formData.notes}
-              onChange={handleChange}
-            />
-          </label>
+            <label className="form__group">
+              <span>Telefone</span>
+              <input
+                name="phone"
+                placeholder="Somente números"
+                value={currentDraft.phone}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+                minLength={11}
+                maxLength={11}
+                pattern="[0-9]{11}"
+                title="Digite exatamente 11 números (DDD + número)"
+              />
+            </label>
 
-          {feedback && <p className="form__feedback form__feedback--success">{feedback}</p>}
+            <label className="form__group form__group--full">
+              <span>Observações</span>
+              <textarea
+                name="notes"
+                rows={3}
+                placeholder="Alergias, preferências e outras anotações."
+                value={currentDraft.notes}
+                onChange={handleChange}
+              />
+            </label>
 
-          <button type="submit" className="button button--primary form__group--full">
-            Salvar alterações
-          </button>
-        </form>
-      </div>
+            {feedback && <p className="form__feedback form__feedback--success">{feedback}</p>}
+
+            <button type="submit" className="button button--primary form__group--full">
+              Salvar alterações
+            </button>
+          </form>
+        </div>
+      )}
     </>
   )
 }
