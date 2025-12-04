@@ -23,6 +23,11 @@ O servidor roda em `http://localhost:5173`.
 - **Login** com credenciais fixas (`admin@clinica.com / 123456`)
 - **Dashboard** com navegação controlada por estado
 - **Cadastrar paciente** com criação e listagem armazenada apenas em memória
+- **Lista de paciente** com listagem e filtragem rápida armazenada apenas em memória
+- **Editar paciente** com edição armazenada apenas em memória
+- **Cadastrar consulta** com criação e listagem armazenada apenas em memória
+- **Lista de consultas** com listagem armazenada apenas em memória
+- **Editar Consultas** com edição armazenada apenas em memória
 
 ## Deploy
 
